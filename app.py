@@ -18,9 +18,15 @@ if 'current_user' not in st.session_state:
 if 'user_code' not in st.session_state:
     st.session_state['user_code'] = None
 
-# Kết nối Google Sheets
+# 2. TỐI ƯU HÓA: Dùng bộ nhớ đệm (Cache) để tải dữ liệu từ Google Sheets
+@st.cache_data(ttl=600) # Lưu đệm 10 phút để giảm tải máy chủ
+def load_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    return conn.read(worksheet="Sheet1", ttl=0)
+
+df_keys = load_data()
+# Khởi tạo lại connection object để dành cho việc ghi (update) dữ liệu
 conn = st.connection("gsheets", type=GSheetsConnection)
-df_keys = conn.read(worksheet="Sheet1", ttl=0)
 
 # Ép kiểu dữ liệu để tránh lỗi
 df_keys['Ma_ID'] = df_keys['Ma_ID'].astype(str)
@@ -77,7 +83,12 @@ if not st.session_state['logged_in']:
                         df_keys.at[row_index, 'Username'] = reg_user
                         df_keys.at[row_index, 'Password'] = hash_password(reg_pass)
                         
+                        # Cập nhật lên Sheets
                         conn.update(worksheet="Sheet1", data=df_keys)
+                        
+                        # TỐI ƯU HÓA: Xóa bộ nhớ đệm ngay sau khi ghi dữ liệu để đồng bộ trạng thái mới
+                        load_data.clear()
+                        
                         st.success("Kích hoạt thành công! Vui lòng chuyển sang tab Đăng nhập để sử dụng.")
                 else:
                     st.error("Mã này đã được kích hoạt trước đó!")
@@ -134,6 +145,9 @@ else:
             file_name=f"raw_data_{st.session_state['current_user']}.csv",
             mime='text/csv',
         )
+        
+        # TỐI ƯU HÓA: Dọn dẹp RAM ngay lập tức sau khi sinh file CSV xong
+        del df_bai_tap
     
         st.write("---")
         st.subheader("📝 Nộp bài chấm điểm tự động")
