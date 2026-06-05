@@ -21,9 +21,11 @@ if 'user_code' not in st.session_state:
 # Kết nối Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 df_keys = conn.read(worksheet="Sheet1", ttl=0)
-# Ép kiểu dữ liệu để tránh lỗi
+# THAY THẾ PHẦN ÉP KIỂU BẰNG 4 DÒNG SAU:
+df_keys['Ma_ID'] = df_keys['Ma_ID'].astype(str)
 df_keys['Trang_thai'] = df_keys['Trang_thai'].astype(str)
 df_keys['Username'] = df_keys['Username'].astype(str)
+df_keys['Password'] = df_keys['Password'].astype(str) # <-- Đây chính là dòng trị dứt điểm lỗi
 
 # ==========================================
 # GIAO DIỆN KHI CHƯA ĐĂNG NHẬP
